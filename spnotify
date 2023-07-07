@@ -31,7 +31,7 @@
 
 spnotify_dir="$HOME/.spnotify/"         # change this to the path where you want spnotify to save the images, e.g. "/tmp/spnotify/" or "$HOME/.spnotify/". Has to end in slash.
 t_notification="8000"                   # the number of milliseconds you want the notification to be visible
-replace_previous_notifications="true"   # replace the old notification when the song changes while the old notification is still visible. Disadvantage of having this turned on:
+replace_previous_notifications="true"   # replace the old notification when the song changes while the previous notification is still visible. Disadvantage of having this turned on:
                                         # If you manually close a notification and then the song changes while the closed notification would have still been visible, no new notification will appear.
 urgency="normal"                        # low, normal, critical
 
