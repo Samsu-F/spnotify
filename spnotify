@@ -1,0 +1,113 @@
+#!/bin/bash
+
+# spnotify: sends a notification when the song changes
+# only works for spotify
+
+
+# -------------------------------- LICENCE --------------------------------
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+
+
+# -------------------------------- CONFIG --------------------------------
+
+
+spnotify_dir="$HOME/.spnotify/"         # change this to the path where you want spnotify to save the images, e.g. "/tmp/spnotify/" or "$HOME/.spnotify/". Has to end in slash.
+t_notification="8000"                   # the number of milliseconds you want the notification to be visible
+replace_previous_notifications="true"   # replace the old notification when the song changes while the old notification is still visible. Disadvantage of having this turned on:
+                                        # If you manually close a notification and then the song changes while the closed notification would have still been visible, no new notification will appear.
+urgency="normal"                        # low, normal, critical
+
+# ------------------------------------------------------------------------
+
+
+
+
+
+# stop all other running instances of spnotify if argument is stop
+if [ "$1" == "stop" ]; then
+    if pidof -x "$(basename "$0")" -o %PPID >/dev/null; then
+        kill "$(pidof -x "$(basename "$0")" -o %PPID)"
+        echo "stopping spnotify"
+    fi
+    exit 0
+fi
+
+
+if pidof -x "$(basename "$0")" -o %PPID >/dev/null; then    # if another instance of this script is running
+    if [ "$1" == "start" ]; then                            # if argument is "start" then just exit, nothing to do
+        exit 0
+    fi
+    kill "$(pidof -x "$(basename "$0")" -o %PPID)"          # else toggle mode, so quit the other instance and exit
+    echo "stopping spnotify"
+    exit 0
+fi
+echo "starting spnotify"
+
+mkdir -p "$spnotify_dir"
+cd "$spnotify_dir" || exit 1
+
+( (
+
+oldsonginfo=""
+last_notification_time="0"
+last_notification_id=""
+while true
+do
+
+    newsonginfo="$(dbus-send --print-reply --dest=org.mpris.MediaPlayer2."spotify" /org/mpris/MediaPlayer2 \
+                   org.freedesktop.DBus.Properties.Get string:'org.mpris.MediaPlayer2.Player' \
+                   string:'Metadata' 2>/dev/null |\
+                   awk -F '"' 'BEGIN {RS=" entry"}; /"xesam:artist"/ {a = $4} /"xesam:album"/ {b = $4}
+                               /"xesam:title"/ {t = $4} END {print t "\nAlbum: " " " b "\nArtist: " a}')"
+    song_title="$(echo -e "$newsonginfo" | head -n 1)"
+
+    if [[ "$oldsonginfo" != "$newsonginfo" ]] && [ "$song_title" ]
+    then
+        oldsonginfo="$newsonginfo"
+
+        artURL="$(dbus-send --print-reply --dest=org.mpris.MediaPlayer2."spotify" /org/mpris/MediaPlayer2 \
+                  org.freedesktop.DBus.Properties.Get string:'org.mpris.MediaPlayer2.Player' \
+                  string:'Metadata' 2>/dev/null |\
+                  awk -F '"' 'BEGIN {RS=" entry"}; /"mpris:artUrl"/ {a = $4} END {print a}')"
+        filename="$(echo "$artURL"|cut -b 25-64)"
+        if [ ! -f "$filename" ];
+        then
+            wget -q "$artURL"
+        fi
+
+        if [ "$(( $(date +%s%3N) - last_notification_time + 100))" -gt "$t_notification" ] || ! $replace_previous_notifications || ! [ "$last_notification_id" ]
+        # if time of last notification is longer in the past than the visibility time
+        # --> if last notifation gone  (+ 0.1s for good measure, to avoid replacing a notification that does not exists)
+        then
+            # new notification, save new id
+            last_notification_id="$(notify-send -t "$t_notification" -u "$urgency" -a "spnotify" -i "$spnotify_dir$filename" \
+                                                "$(echo -e "$newsonginfo" | head -n 1)" "$(echo -e "$newsonginfo" | tail -n 2)" -p)"
+        else    # if last notification still visible
+            #replace last notification, no need to update the id
+            notify-send -t "$t_notification" -u "$urgency" -a "spnotify" -i "$spnotify_dir$filename" "$song_title" \
+                        "$(echo -e "$newsonginfo" | tail -n 2)" --replace-id="$last_notification_id"
+        fi
+        last_notification_time="$(date +%s%3N)"
+    fi
+    sleep 0.1
+
+done
+) &)
