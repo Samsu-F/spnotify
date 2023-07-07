@@ -19,7 +19,7 @@ The following variables can be customized directly in the script:
 
 - `spnotify_dir`: The directory where spnotify saves the album art. You can set this to any path you want spnotify to save the images to, e.g. "/tmp/spnotify/" or "$HOME/.spnotify/". The default is `$HOME/.spnotify/`.
 
-- `t_notification`: The time for which the natification is visible (in ms). The default is `8000`.
+- `t_notification`: The time for which the notification is visible (in ms). The default is `8000`.
 
 - `replace_previous_notifications`: If this is set to `true`, spnotify replaces the old notification when the song changes while the previous notification is still visible. The downside of this setting is that if you manually close a notification and the song changes while the closed notification would have still been visible, no new notification will be displayed. Set to `true` by default.
 
