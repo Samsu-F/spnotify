@@ -8,9 +8,11 @@ Alternatively you can also start it directly specifying the path to the file or 
 Make sure the file is executable (`chmod +x spnotify`).
 
 # Usage
-`spnotify` to toggle the script on/off.
-`spnotify start` start the script, do nothing if another instance is already running.
-`spnotify stop` stop the script if it is running.
+- `spnotify` to toggle the script on/off.
+
+- `spnotify start` start the script, do nothing if another instance is already running.
+
+- `spnotify stop` stop the script if it is running.
 
 # Config
 The following variables can be customized directly in the script:
