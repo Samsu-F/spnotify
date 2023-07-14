@@ -43,7 +43,7 @@ urgency="normal"                        # low, normal, critical
 
 # stop all other running instances of spnotify if argument is stop
 if [ "$1" == "stop" ]; then
-    if pidof -x "$(basename "$0")" -o %PPID >/dev/null; then
+    if pidof -qx "$(basename "$0")" -o %PPID; then
         kill "$(pidof -x "$(basename "$0")" -o %PPID)"
         echo "stopping spnotify"
     fi
@@ -51,7 +51,7 @@ if [ "$1" == "stop" ]; then
 fi
 
 
-if pidof -x "$(basename "$0")" -o %PPID >/dev/null; then    # if another instance of this script is running
+if pidof -qx "$(basename "$0")" -o %PPID; then    # if another instance of this script is running
     if [ "$1" == "start" ]; then                            # if argument is "start" then just exit, nothing to do
         exit 0
     fi
